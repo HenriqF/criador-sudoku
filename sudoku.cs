@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using System.Diagnostics;
 
 public class Sudoku
 {
@@ -116,48 +117,108 @@ public class Sudoku
 
     static private void new_valid_boards(string[,] board, string[,] solution)
     {
+        string[,] new_board = new string[board_size, board_size];
+        string[,] master = new string[board_size, board_size];
+        for (int r = 0; r < board_size; r++)
+        {
+            for (int c = 0; c < board_size; c++)
+            {
+                new_board[r,c] = "_";
+                master[r,c] = "_"; 
+            }
+        }
+        solve_count_solutions(new_board, master, 1);
+        copy_references(master, solution);
 
+
+        Random random = new Random();
+
+        int count = 0;
+        int size_sqr = board_size*board_size;
+        int to_remove = random.Next((int)(size_sqr * 0.55), (int)(size_sqr * 0.60) + 1);
+
+        List<(int, int)> not_removed = new List<(int, int)>();
+        for (int r = 0; r < board_size; r++)
+        {
+            for (int c = 0; c < board_size; c++)
+            {
+                not_removed.Add((r,c));
+            }
+        }
+        for (int i = not_removed.Count-1; i > 0; i--)
+        {
+            int j = random.Next(i+1);
+            (int, int) temp = not_removed[i];
+            not_removed[i] = not_removed[j];
+            not_removed[j] = temp;
+        }
+
+        while (count < to_remove)
+        {
+            while (true)
+            {
+                if (not_removed.Count == 0)break;
+
+                int index = not_removed.Count-1;
+                int r = not_removed[index].Item1;
+                int c = not_removed[index].Item2;
+                not_removed.RemoveAt(index);
+
+                string[,] new_master = new string[board_size, board_size];
+                copy_references(master, new_master);
+                new_master[r,c] = "_";
+
+                if (solve_count_solutions(new_master, new_master, 0) == 0)
+                {
+                    master[r,c] = "_";
+                    break;
+                }
+
+            }
+            count += 1;
+        }
+
+
+        copy_references(master, board);
     }
 
+    public void show_boards()
+    {
+        for (int i = 0; i < board.GetLength(0); i++)
+        {
+            for (int j = 0; j < board.GetLength(1); j++)
+            {
+                Console.Write(board[i, j] + " ");
+            }
+            Console.WriteLine();
+        }
+        Console.WriteLine("\n");
+
+        for (int i = 0; i < solution.GetLength(0); i++)
+        {
+            for (int j = 0; j < solution.GetLength(1); j++)
+            {
+                Console.Write(solution[i, j] + " ");
+            }
+            Console.WriteLine();
+        }
+    }
 
     public Sudoku()
     {
         board_size = 6;
-        blockheight = 2;
         blockwidth = 3;
+        blockheight = 2;
         numeros = new string[board_size];
+        for (int i = 0; i < board_size; i++) numeros[i] = (i + 1).ToString();
 
         board = new string[board_size, board_size];
         solution = new string[board_size, board_size];
 
-        for (int i = 0; i < board_size; i++)
-        {
-            numeros[i] = (i + 1).ToString();
-        }
-
-
-        string[,] sudoku = new string[6, 6]
-        {
-            { "_", "3", "_", "_", "_", "5" },
-            { "6", "_", "5", "1", "_", "_" },
-            { "_", "1", "_", "_", "_", "6" },
-            { "2", "4", "6", "_", "_", "_" },
-            { "3", "5", "1", "_", "6", "_" },
-            { "4", "_", "2", "_", "1", "3" }
-        };
-
-
-        solve_count_solutions(sudoku, sudoku, 0);
-        for (int i = 0; i < sudoku.GetLength(0); i++)
-        {
-            for (int j = 0; j < sudoku.GetLength(1); j++)
-            {
-                Console.Write(sudoku[i, j] + " ");
-            }
-            Console.WriteLine();
-        }
-
-
+        
+        
+        new_valid_boards(board, solution);
+        
     }
 
 }
@@ -169,8 +230,14 @@ class Program
 {
     static void Main()
     {
+        var sw = Stopwatch.StartNew();
+
         Sudoku s = new Sudoku();
-        Console.WriteLine("wow!");
+
+        sw.Stop();
+        Console.WriteLine(sw.ElapsedMilliseconds);
+
+        s.show_boards();
     }
 
 }
